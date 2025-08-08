@@ -320,11 +320,19 @@ fn test_sep_by1_failure() {
     ");
 }
 
+fn parser1<'a>() -> impl Parser<&'a str, char> {
+    char('h').or(char('H'))
+}
+
+fn parser2<'a>() -> impl Parser<&'a str, char> {
+    char('E').or(char('e'))
+}
+
 #[test]
 fn test_composition() {
-    let parser1 = char('h').or(char('H')).map(|c| c.to_lowercase());
-    let parser2 = char('E').or(char('e')).map(|c| c.to_lowercase());
-    let parser = parser1.and(parser2).map(|(a, b)| format!("{}{}", a, b));
+    let parser = parser1()
+        .and(parser2())
+        .map(|(a, b)| a.to_lowercase().chain(b.to_lowercase()).collect::<String>());
     let result = parser.parse("Hello");
     insta::assert_debug_snapshot!(result, @r#"
     Ok(

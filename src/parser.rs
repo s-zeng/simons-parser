@@ -17,7 +17,11 @@ pub trait Parser<I: Input, T> {
         Self: Sized,
         F: Fn(T) -> U,
     {
-        Map { parser: self, f, _phantom: PhantomData }
+        Map {
+            parser: self,
+            f,
+            _phantom: PhantomData,
+        }
     }
 
     /// Applicative sequence: parse two things in sequence, keeping both results
@@ -26,7 +30,10 @@ pub trait Parser<I: Input, T> {
         Self: Sized,
         P: Parser<I, U>,
     {
-        And { left: self, right: other }
+        And {
+            left: self,
+            right: other,
+        }
     }
 
     /// Parse this, then that, keeping only the result of this
@@ -35,7 +42,11 @@ pub trait Parser<I: Input, T> {
         Self: Sized,
         P: Parser<I, U>,
     {
-        Skip { left: self, right: other, _phantom: PhantomData }
+        Skip {
+            left: self,
+            right: other,
+            _phantom: PhantomData,
+        }
     }
 
     /// Parse that, then this, keeping only the result of this
@@ -44,7 +55,11 @@ pub trait Parser<I: Input, T> {
         Self: Sized,
         P: Parser<I, U>,
     {
-        PrecededBy { first: other, second: self, _phantom: PhantomData }
+        PrecededBy {
+            first: other,
+            second: self,
+            _phantom: PhantomData,
+        }
     }
 
     /// Monadic bind: parse this, then use the result to determine the next parser
@@ -54,7 +69,11 @@ pub trait Parser<I: Input, T> {
         F: Fn(T) -> P,
         P: Parser<I, U>,
     {
-        Bind { parser: self, f, _phantom: PhantomData }
+        Bind {
+            parser: self,
+            f,
+            _phantom: PhantomData,
+        }
     }
 
     /// Alternative: try this parser, if it fails try the other
@@ -63,7 +82,10 @@ pub trait Parser<I: Input, T> {
         Self: Sized,
         P: Parser<I, T>,
     {
-        Or { left: self, right: other }
+        Or {
+            left: self,
+            right: other,
+        }
     }
 
     /// Make this parser optional (returns Some(result) or None)
@@ -109,7 +131,9 @@ where
     F: Fn(T) -> U,
 {
     fn parse(&self, input: I) -> ParseResult<I, U> {
-        self.parser.parse(input).map(|(result, remaining)| ((self.f)(result), remaining))
+        self.parser
+            .parse(input)
+            .map(|(result, remaining)| ((self.f)(result), remaining))
     }
 }
 
@@ -251,7 +275,7 @@ where
 {
     fn parse(&self, mut input: I) -> ParseResult<I, Vec<T>> {
         let mut results = Vec::new();
-        
+
         loop {
             match self.parser.parse(input.clone()) {
                 Ok((result, remaining)) => {
@@ -261,7 +285,7 @@ where
                 Err(_) => break,
             }
         }
-        
+
         Ok((results, input))
     }
 }
@@ -280,7 +304,7 @@ where
     fn parse(&self, input: I) -> ParseResult<I, Vec<T>> {
         let (first, mut remaining) = self.parser.parse(input)?;
         let mut results = vec![first];
-        
+
         loop {
             match self.parser.parse(remaining.clone()) {
                 Ok((result, new_remaining)) => {
@@ -290,7 +314,7 @@ where
                 Err(_) => break,
             }
         }
-        
+
         Ok((results, remaining))
     }
 }
@@ -299,7 +323,10 @@ where
 
 /// Pure - lifts a value into the parser context (always succeeds)
 pub fn pure<I: Input, T: Clone>(value: T) -> Pure<I, T> {
-    Pure { value, _phantom: PhantomData }
+    Pure {
+        value,
+        _phantom: PhantomData,
+    }
 }
 
 pub struct Pure<I, T> {
@@ -315,7 +342,7 @@ impl<I: Input, T: Clone> Parser<I, T> for Pure<I, T> {
 
 /// Fail - always fails with the given error message
 pub fn fail<I: Input, T>(message: impl Into<String>) -> Fail<I, T> {
-    Fail { 
+    Fail {
         message: message.into(),
         _phantom: PhantomData,
     }

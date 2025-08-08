@@ -5,7 +5,9 @@ use std::marker::PhantomData;
 
 /// Consumes any single item from the input
 pub fn item<I: Input>() -> Item<I> {
-    Item { _phantom: PhantomData }
+    Item {
+        _phantom: PhantomData,
+    }
 }
 
 pub struct Item<I> {
@@ -27,7 +29,10 @@ where
     I: Input,
     F: Fn(&I::Item) -> bool,
 {
-    Satisfy { predicate, _phantom: PhantomData }
+    Satisfy {
+        predicate,
+        _phantom: PhantomData,
+    }
 }
 
 pub struct Satisfy<I, F> {
@@ -88,7 +93,10 @@ impl<I: Input> Parser<I, I::Item> for Token<I> {
 
 /// Succeeds without consuming input (empty parser)
 pub fn empty<I: Input, T: Clone>(value: T) -> Empty<I, T> {
-    Empty { value, _phantom: PhantomData }
+    Empty {
+        value,
+        _phantom: PhantomData,
+    }
 }
 
 pub struct Empty<I, T> {
@@ -110,7 +118,12 @@ where
     P: Parser<I, U>,
     R: Parser<I, V>,
 {
-    Between { left, parser, right, _phantom: PhantomData }
+    Between {
+        left,
+        parser,
+        right,
+        _phantom: PhantomData,
+    }
 }
 
 pub struct Between<L, P, R, T, U, V> {
@@ -137,7 +150,10 @@ where
 
 /// Choice between multiple parsers (tries each in order)
 pub fn choice<I: Input, T, P: Parser<I, T>>(parsers: Vec<P>) -> Choice<I, T, P> {
-    Choice { parsers, _phantom: PhantomData }
+    Choice {
+        parsers,
+        _phantom: PhantomData,
+    }
 }
 
 pub struct Choice<I, T, P> {
@@ -152,14 +168,14 @@ where
 {
     fn parse(&self, input: I) -> ParseResult<I, T> {
         let mut errors = Vec::new();
-        
+
         for parser in &self.parsers {
             match parser.parse(input.clone()) {
                 Ok(result) => return Ok(result),
                 Err(err) => errors.push(err),
             }
         }
-        
+
         Err(ParseError::many(errors))
     }
 }
@@ -172,7 +188,11 @@ where
     S: Parser<I, U>,
     T: Clone,
 {
-    SepBy { parser, separator, _phantom: PhantomData }
+    SepBy {
+        parser,
+        separator,
+        _phantom: PhantomData,
+    }
 }
 
 pub struct SepBy<P, S, T, U> {
@@ -194,9 +214,9 @@ where
             Ok(result) => result,
             Err(_) => return Ok((Vec::new(), input)), // Empty list is valid
         };
-        
+
         let mut results = vec![first];
-        
+
         // Parse separator followed by element, repeatedly
         loop {
             let input_before_sep = remaining.clone();
@@ -217,7 +237,7 @@ where
                 Err(_) => break, // No more separators
             }
         }
-        
+
         Ok((results, remaining))
     }
 }
@@ -230,7 +250,11 @@ where
     S: Parser<I, U>,
     T: Clone,
 {
-    SepBy1 { parser, separator, _phantom: PhantomData }
+    SepBy1 {
+        parser,
+        separator,
+        _phantom: PhantomData,
+    }
 }
 
 pub struct SepBy1<P, S, T, U> {
@@ -249,7 +273,7 @@ where
     fn parse(&self, input: I) -> ParseResult<I, Vec<T>> {
         let (first, mut remaining) = self.parser.parse(input)?;
         let mut results = vec![first];
-        
+
         // Parse separator followed by element, repeatedly
         loop {
             let input_before_sep = remaining.clone();
@@ -270,14 +294,16 @@ where
                 Err(_) => break, // No more separators
             }
         }
-        
+
         Ok((results, remaining))
     }
 }
 
 /// Parses end of input
 pub fn eof<I: Input>() -> Eof<I> {
-    Eof { _phantom: PhantomData }
+    Eof {
+        _phantom: PhantomData,
+    }
 }
 
 pub struct Eof<I> {
@@ -289,7 +315,11 @@ impl<I: Input> Parser<I, ()> for Eof<I> {
         if input.is_empty() {
             Ok(((), input))
         } else {
-            Err(ParseError::expected("end of input", Some("more input"), input))
+            Err(ParseError::expected(
+                "end of input",
+                Some("more input"),
+                input,
+            ))
         }
     }
 }

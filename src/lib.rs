@@ -4,14 +4,14 @@
 //! input stream types, not just text. You can parse HTML DOM, JSON structures, or
 //! any type that implements the required iterator traits.
 
+pub mod combinators;
 pub mod error;
 pub mod input;
 pub mod parser;
-pub mod combinators;
 pub mod text;
 
+pub use combinators::*;
 pub use error::{ParseError, ParseResult};
 pub use input::Input;
-pub use parser::{Parser, pure, fail, Pure, Fail};
-pub use combinators::*;
+pub use parser::{Fail, Parser, Pure, fail, pure};
 pub use text::*;

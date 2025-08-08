@@ -1,4 +1,7 @@
 name: "CI Nix"
+# This workflow tests the library crate using Nix.
+# Since this is a library (not a binary), `nix run` executes our test runner
+# which builds the library and runs all tests in a reproducible Nix environment.
 on:
   pull_request:
   push:
@@ -7,8 +10,9 @@ jobs:
     name: Rust project
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@main
-    - run: nix develop -c rustc --version
-    - run: nix run
+      - uses: actions/checkout@v3
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - run: nix develop -c rustc --version
+      - name: Run tests via Nix
+        run: nix run

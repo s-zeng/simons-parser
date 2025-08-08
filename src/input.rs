@@ -1,7 +1,7 @@
 //! Input stream trait for general input types.
 
 /// Trait for types that can be used as input to parsers.
-/// 
+///
 /// This allows parsing over any type that can provide iterator-like access,
 /// not just strings or byte slices. Examples include HTML DOM trees, JSON values,
 /// or custom data structures.
@@ -71,4 +71,3 @@ impl<T: Clone + PartialEq + std::fmt::Debug> Input for Vec<T> {
         Some(Vec::len(self))
     }
 }
-

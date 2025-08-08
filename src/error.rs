@@ -17,17 +17,18 @@ pub enum ParseError<I> {
         input: I,
     },
     /// Custom error with message
-    Message {
-        message: String,
-        input: I,
-    },
+    Message { message: String, input: I },
     /// Multiple errors (for choice combinators)
     Many(Vec<ParseError<I>>),
 }
 
 impl<I> ParseError<I> {
     /// Create a new expected error
-    pub fn expected(expected: impl Into<String>, found: Option<impl Into<String>>, input: I) -> Self {
+    pub fn expected(
+        expected: impl Into<String>,
+        found: Option<impl Into<String>>,
+        input: I,
+    ) -> Self {
         ParseError::Expected {
             expected: expected.into(),
             found: found.map(|f| f.into()),
@@ -56,7 +57,11 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ParseError::UnexpectedEof => write!(f, "unexpected end of input"),
-            ParseError::Expected { expected, found, input } => {
+            ParseError::Expected {
+                expected,
+                found,
+                input,
+            } => {
                 write!(f, "expected {}", expected)?;
                 if let Some(found) = found {
                     write!(f, ", found {}", found)?;

@@ -233,7 +233,7 @@ fn test_one_of_parser() {
         },
     )
     "#);
-    
+
     let result2 = parser.parse("apple");
     insta::assert_debug_snapshot!(result2, @r###"
     Ok(
@@ -271,7 +271,7 @@ fn test_not_char_parser() {
         ),
     )
     "###);
-    
+
     let result2 = parser.parse("xhello");
     insta::assert_debug_snapshot!(result2, @r#"
     Err(

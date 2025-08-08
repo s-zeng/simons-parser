@@ -19,7 +19,9 @@ impl<'a> Parser<&'a str, char> for Char {
 
 /// Parse a specific string
 pub fn string(s: &str) -> String_ {
-    String_ { expected: s.to_string() }
+    String_ {
+        expected: s.to_string(),
+    }
 }
 
 pub struct String_ {
@@ -30,7 +32,7 @@ impl<'a> Parser<&'a str, String> for String_ {
     fn parse(&self, mut input: &'a str) -> ParseResult<&'a str, String> {
         let original_input = input;
         let mut matched = String::new();
-        
+
         for expected_char in self.expected.chars() {
             match input.uncons() {
                 Some((c, remaining)) if c == expected_char => {
@@ -53,7 +55,7 @@ impl<'a> Parser<&'a str, String> for String_ {
                 }
             }
         }
-        
+
         Ok((matched, input))
     }
 }
@@ -119,7 +121,10 @@ pub struct Spaces;
 
 impl<'a> Parser<&'a str, String> for Spaces {
     fn parse(&self, input: &'a str) -> ParseResult<&'a str, String> {
-        space().many().map(|chars| chars.into_iter().collect()).parse(input)
+        space()
+            .many()
+            .map(|chars| chars.into_iter().collect())
+            .parse(input)
     }
 }
 
@@ -132,7 +137,10 @@ pub struct Spaces1;
 
 impl<'a> Parser<&'a str, String> for Spaces1 {
     fn parse(&self, input: &'a str) -> ParseResult<&'a str, String> {
-        space().many1().map(|chars| chars.into_iter().collect()).parse(input)
+        space()
+            .many1()
+            .map(|chars| chars.into_iter().collect())
+            .parse(input)
     }
 }
 
@@ -189,13 +197,12 @@ pub struct Integer;
 
 impl<'a> Parser<&'a str, i32> for Integer {
     fn parse(&self, input: &'a str) -> ParseResult<&'a str, i32> {
-        char('-').optional()
+        char('-')
+            .optional()
             .and(unsigned())
-            .map(|(sign, num)| {
-                match sign {
-                    Some(_) => -(num as i32),
-                    None => num as i32,
-                }
+            .map(|(sign, num)| match sign {
+                Some(_) => -(num as i32),
+                None => num as i32,
             })
             .parse(input)
     }
@@ -218,7 +225,9 @@ impl<'a> Parser<&'a str, char> for NotChar {
 
 /// Parse any character from a given set
 pub fn one_of(chars: &str) -> OneOf {
-    OneOf { chars: chars.to_string() }
+    OneOf {
+        chars: chars.to_string(),
+    }
 }
 
 pub struct OneOf {
@@ -233,7 +242,9 @@ impl<'a> Parser<&'a str, char> for OneOf {
 
 /// Parse any character not in the given set
 pub fn none_of(chars: &str) -> NoneOf {
-    NoneOf { chars: chars.to_string() }
+    NoneOf {
+        chars: chars.to_string(),
+    }
 }
 
 pub struct NoneOf {

@@ -319,3 +319,19 @@ fn test_sep_by1_failure() {
     )
     ");
 }
+
+#[test]
+fn test_composition() {
+    let parser1 = char('h').or(char('H')).map(|c| c.to_lowercase());
+    let parser2 = char('E').or(char('e')).map(|c| c.to_lowercase());
+    let parser = parser1.and(parser2).map(|(a, b)| format!("{}{}", a, b));
+    let result = parser.parse("Hello");
+    insta::assert_debug_snapshot!(result, @r#"
+    Ok(
+        (
+            "he",
+            "llo",
+        ),
+    )
+    "#);
+}

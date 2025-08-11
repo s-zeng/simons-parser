@@ -92,60 +92,21 @@ impl<I: Input> Parser<I, I::Item> for Token<I> {
 }
 
 /// Succeeds without consuming input (empty parser)
-pub fn empty<I: Input, T: Clone>(value: T) -> Empty<I, T> {
-    Empty {
-        value,
-        _phantom: PhantomData,
-    }
-}
-
-pub struct Empty<I, T> {
-    value: T,
-    _phantom: PhantomData<I>,
-}
-
-impl<I: Input, T: Clone> Parser<I, T> for Empty<I, T> {
-    fn parse(&self, input: I) -> ParseResult<I, T> {
-        Ok((self.value.clone(), input))
-    }
+/// This is an alias for `pure` from the parser module
+pub fn empty<I: Input, T: Clone>(value: T) -> crate::parser::Pure<I, T> {
+    crate::parser::pure(value)
 }
 
 /// Parses between two delimiters
-pub fn between<I, L, R, P, T, U, V>(left: L, parser: P, right: R) -> Between<L, P, R, T, U, V>
+/// Composed using preceded_by and skip combinators
+pub fn between<I, L, R, P, T, U, V>(left: L, parser: P, right: R) -> impl Parser<I, U>
 where
     I: Input,
     L: Parser<I, T>,
     P: Parser<I, U>,
     R: Parser<I, V>,
 {
-    Between {
-        left,
-        parser,
-        right,
-        _phantom: PhantomData,
-    }
-}
-
-pub struct Between<L, P, R, T, U, V> {
-    left: L,
-    parser: P,
-    right: R,
-    _phantom: PhantomData<(T, U, V)>,
-}
-
-impl<I, L, P, R, T, U, V> Parser<I, U> for Between<L, P, R, T, U, V>
-where
-    I: Input,
-    L: Parser<I, T>,
-    P: Parser<I, U>,
-    R: Parser<I, V>,
-{
-    fn parse(&self, input: I) -> ParseResult<I, U> {
-        let (_, input1) = self.left.parse(input)?;
-        let (result, input2) = self.parser.parse(input1)?;
-        let (_, input3) = self.right.parse(input2)?;
-        Ok((result, input3))
-    }
+    parser.preceded_by(left).skip(right)
 }
 
 /// Choice between multiple parsers (tries each in order)
@@ -242,7 +203,7 @@ where
     }
 }
 
-/// Parse one or more items separated by a delimiter
+/// Parse one or more items separated by a delimiter  
 pub fn sep_by1<I, P, S, T, U>(parser: P, separator: S) -> SepBy1<P, S, T, U>
 where
     I: Input,

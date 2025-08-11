@@ -3,18 +3,9 @@
 use crate::{Input, ParseError, ParseResult, Parser, combinators::*};
 
 /// Parse a specific character
-pub fn char(c: char) -> Char {
-    Char { expected: c }
-}
-
-pub struct Char {
-    expected: char,
-}
-
-impl<'a> Parser<&'a str, char> for Char {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        token(self.expected).parse(input)
-    }
+/// Composed using the token combinator
+pub fn char<'a>(c: char) -> impl Parser<&'a str, char> {
+    token(c)
 }
 
 /// Parse a specific string
@@ -61,113 +52,51 @@ impl<'a> Parser<&'a str, String> for String_ {
 }
 
 /// Parse any alphabetic character
-pub fn alpha() -> Alpha {
-    Alpha
-}
-
-pub struct Alpha;
-
-impl<'a> Parser<&'a str, char> for Alpha {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        satisfy(|c: &char| c.is_alphabetic()).parse(input)
-    }
+/// Composed using the satisfy combinator
+pub fn alpha<'a>() -> impl Parser<&'a str, char> {
+    satisfy(|c: &char| c.is_alphabetic())
 }
 
 /// Parse any numeric digit
-pub fn digit() -> Digit {
-    Digit
-}
-
-pub struct Digit;
-
-impl<'a> Parser<&'a str, char> for Digit {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        satisfy(|c: &char| c.is_ascii_digit()).parse(input)
-    }
+/// Composed using the satisfy combinator
+pub fn digit<'a>() -> impl Parser<&'a str, char> {
+    satisfy(|c: &char| c.is_ascii_digit())
 }
 
 /// Parse any alphanumeric character
-pub fn alphanumeric() -> Alphanumeric {
-    Alphanumeric
-}
-
-pub struct Alphanumeric;
-
-impl<'a> Parser<&'a str, char> for Alphanumeric {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        satisfy(|c: &char| c.is_alphanumeric()).parse(input)
-    }
+/// Composed using the satisfy combinator
+pub fn alphanumeric<'a>() -> impl Parser<&'a str, char> {
+    satisfy(|c: &char| c.is_alphanumeric())
 }
 
 /// Parse any whitespace character
-pub fn space() -> Space {
-    Space
-}
-
-pub struct Space;
-
-impl<'a> Parser<&'a str, char> for Space {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        satisfy(|c: &char| c.is_whitespace()).parse(input)
-    }
+/// Composed using the satisfy combinator
+pub fn space<'a>() -> impl Parser<&'a str, char> {
+    satisfy(|c: &char| c.is_whitespace())
 }
 
 /// Parse zero or more whitespace characters
-pub fn spaces() -> Spaces {
-    Spaces
-}
-
-pub struct Spaces;
-
-impl<'a> Parser<&'a str, String> for Spaces {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, String> {
-        space()
-            .many()
-            .map(|chars| chars.into_iter().collect())
-            .parse(input)
-    }
+/// Composed using space(), many(), and map()
+pub fn spaces<'a>() -> impl Parser<&'a str, String> {
+    space().many().map(|chars| chars.into_iter().collect())
 }
 
 /// Parse one or more whitespace characters
-pub fn spaces1() -> Spaces1 {
-    Spaces1
-}
-
-pub struct Spaces1;
-
-impl<'a> Parser<&'a str, String> for Spaces1 {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, String> {
-        space()
-            .many1()
-            .map(|chars| chars.into_iter().collect())
-            .parse(input)
-    }
+/// Composed using space(), many1(), and map()
+pub fn spaces1<'a>() -> impl Parser<&'a str, String> {
+    space().many1().map(|chars| chars.into_iter().collect())
 }
 
 /// Parse a newline character
-pub fn newline() -> Newline {
-    Newline
+/// Composed using the char combinator
+pub fn newline<'a>() -> impl Parser<&'a str, char> {
+    char('\n')
 }
 
-pub struct Newline;
-
-impl<'a> Parser<&'a str, char> for Newline {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        char('\n').parse(input)
-    }
-}
-
-/// Parse a tab character  
-pub fn tab() -> Tab {
-    Tab
-}
-
-pub struct Tab;
-
-impl<'a> Parser<&'a str, char> for Tab {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        char('\t').parse(input)
-    }
+/// Parse a tab character
+/// Composed using the char combinator
+pub fn tab<'a>() -> impl Parser<&'a str, char> {
+    char('\t')
 }
 
 /// Parse an unsigned integer
@@ -209,50 +138,21 @@ impl<'a> Parser<&'a str, i32> for Integer {
 }
 
 /// Parse any character except the given one
-pub fn not_char(c: char) -> NotChar {
-    NotChar { forbidden: c }
-}
-
-pub struct NotChar {
-    forbidden: char,
-}
-
-impl<'a> Parser<&'a str, char> for NotChar {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        satisfy(|ch: &char| *ch != self.forbidden).parse(input)
-    }
+/// Composed using the satisfy combinator
+pub fn not_char<'a>(c: char) -> impl Parser<&'a str, char> {
+    satisfy(move |ch: &char| *ch != c)
 }
 
 /// Parse any character from a given set
-pub fn one_of(chars: &str) -> OneOf {
-    OneOf {
-        chars: chars.to_string(),
-    }
-}
-
-pub struct OneOf {
-    chars: String,
-}
-
-impl<'a> Parser<&'a str, char> for OneOf {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        satisfy(|c: &char| self.chars.contains(*c)).parse(input)
-    }
+/// Composed using the satisfy combinator
+pub fn one_of<'a>(chars: &str) -> impl Parser<&'a str, char> {
+    let chars = chars.to_string();
+    satisfy(move |c: &char| chars.contains(*c))
 }
 
 /// Parse any character not in the given set
-pub fn none_of(chars: &str) -> NoneOf {
-    NoneOf {
-        chars: chars.to_string(),
-    }
-}
-
-pub struct NoneOf {
-    chars: String,
-}
-
-impl<'a> Parser<&'a str, char> for NoneOf {
-    fn parse(&self, input: &'a str) -> ParseResult<&'a str, char> {
-        satisfy(|c: &char| !self.chars.contains(*c)).parse(input)
-    }
+/// Composed using the satisfy combinator
+pub fn none_of<'a>(chars: &str) -> impl Parser<&'a str, char> {
+    let chars = chars.to_string();
+    satisfy(move |c: &char| !chars.contains(*c))
 }

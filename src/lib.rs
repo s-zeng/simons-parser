@@ -13,5 +13,5 @@ pub mod text;
 pub use combinators::*;
 pub use error::{ParseError, ParseResult};
 pub use input::Input;
-pub use parser::{Fail, Parser, Pure, fail, pure};
+pub use parser::{Fail, Parser, Pure, fail, map2, map3, pure, tuple2, tuple3};
 pub use text::*;

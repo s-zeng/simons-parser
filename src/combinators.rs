@@ -141,6 +141,43 @@ where
     }
 }
 
+/// Helper function for parsing separated items (shared logic)
+fn parse_sep_by_impl<I, P, S, T, U>(
+    parser: &P,
+    separator: &S,
+    first: T,
+    mut remaining: I,
+) -> ParseResult<I, Vec<T>>
+where
+    I: Input,
+    P: Parser<I, T>,
+    S: Parser<I, U>,
+    T: Clone,
+{
+    let mut results = vec![first];
+
+    // Parse separator followed by element, repeatedly
+    loop {
+        let input_before_sep = remaining.clone();
+        match separator.parse(remaining.clone()) {
+            Ok((_, after_sep)) => match parser.parse(after_sep) {
+                Ok((element, after_element)) => {
+                    results.push(element);
+                    remaining = after_element;
+                }
+                Err(_) => {
+                    // Separator without following element - backtrack
+                    remaining = input_before_sep;
+                    break;
+                }
+            },
+            Err(_) => break, // No more separators
+        }
+    }
+
+    Ok((results, remaining))
+}
+
 /// Parses items separated by a delimiter
 pub fn sep_by<I, P, S, T, U>(parser: P, separator: S) -> SepBy<P, S, T, U>
 where
@@ -171,39 +208,16 @@ where
 {
     fn parse(&self, input: I) -> ParseResult<I, Vec<T>> {
         // Try to parse the first element
-        let (first, mut remaining) = match self.parser.parse(input.clone()) {
-            Ok(result) => result,
-            Err(_) => return Ok((Vec::new(), input)), // Empty list is valid
-        };
-
-        let mut results = vec![first];
-
-        // Parse separator followed by element, repeatedly
-        loop {
-            let input_before_sep = remaining.clone();
-            match self.separator.parse(remaining.clone()) {
-                Ok((_, after_sep)) => {
-                    match self.parser.parse(after_sep) {
-                        Ok((element, after_element)) => {
-                            results.push(element);
-                            remaining = after_element;
-                        }
-                        Err(_) => {
-                            // Separator without following element - backtrack
-                            remaining = input_before_sep;
-                            break;
-                        }
-                    }
-                }
-                Err(_) => break, // No more separators
+        match self.parser.parse(input.clone()) {
+            Ok((first, remaining)) => {
+                parse_sep_by_impl(&self.parser, &self.separator, first, remaining)
             }
+            Err(_) => Ok((Vec::new(), input)), // Empty list is valid
         }
-
-        Ok((results, remaining))
     }
 }
 
-/// Parse one or more items separated by a delimiter  
+/// Parse one or more items separated by a delimiter
 pub fn sep_by1<I, P, S, T, U>(parser: P, separator: S) -> SepBy1<P, S, T, U>
 where
     I: Input,
@@ -232,31 +246,8 @@ where
     T: Clone,
 {
     fn parse(&self, input: I) -> ParseResult<I, Vec<T>> {
-        let (first, mut remaining) = self.parser.parse(input)?;
-        let mut results = vec![first];
-
-        // Parse separator followed by element, repeatedly
-        loop {
-            let input_before_sep = remaining.clone();
-            match self.separator.parse(remaining.clone()) {
-                Ok((_, after_sep)) => {
-                    match self.parser.parse(after_sep) {
-                        Ok((element, after_element)) => {
-                            results.push(element);
-                            remaining = after_element;
-                        }
-                        Err(_) => {
-                            // Separator without following element - backtrack
-                            remaining = input_before_sep;
-                            break;
-                        }
-                    }
-                }
-                Err(_) => break, // No more separators
-            }
-        }
-
-        Ok((results, remaining))
+        let (first, remaining) = self.parser.parse(input)?;
+        parse_sep_by_impl(&self.parser, &self.separator, first, remaining)
     }
 }
 

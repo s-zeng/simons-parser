@@ -75,16 +75,21 @@ pub fn space<'a>() -> impl Parser<&'a str, char> {
     satisfy(|c: &char| c.is_whitespace())
 }
 
+/// Convert a vector of characters to a String
+pub fn chars_to_string(chars: Vec<char>) -> String {
+    chars.into_iter().collect()
+}
+
 /// Parse zero or more whitespace characters
 /// Composed using space(), many(), and map()
 pub fn spaces<'a>() -> impl Parser<&'a str, String> {
-    space().many().map(|chars| chars.into_iter().collect())
+    space().many().map(chars_to_string)
 }
 
 /// Parse one or more whitespace characters
 /// Composed using space(), many1(), and map()
 pub fn spaces1<'a>() -> impl Parser<&'a str, String> {
-    space().many1().map(|chars| chars.into_iter().collect())
+    space().many1().map(chars_to_string)
 }
 
 /// Parse a newline character

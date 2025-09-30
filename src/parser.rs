@@ -113,6 +113,34 @@ pub trait Parser<I: Input, T> {
     {
         Many1 { parser: self }
     }
+
+    /// Fold over zero or more occurrences with an accumulator
+    fn fold_many0<A, F>(self, init: A, f: F) -> FoldMany0<Self, A, F, T>
+    where
+        Self: Sized,
+        F: FnMut(A, T) -> A,
+    {
+        FoldMany0 {
+            parser: self,
+            init,
+            f,
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Fold over one or more occurrences with an accumulator
+    fn fold_many1<A, F>(self, init: A, f: F) -> FoldMany1<Self, A, F, T>
+    where
+        Self: Sized,
+        F: FnMut(A, T) -> A,
+    {
+        FoldMany1 {
+            parser: self,
+            init,
+            f,
+            _phantom: PhantomData,
+        }
+    }
 }
 
 // Applicative combinators
@@ -262,6 +290,38 @@ where
 
 // Repetition combinators
 
+/// Generic fold over zero or more parser repetitions
+fn fold_many0<I, T, P, A, F>(parser: &P, init: A, mut f: F, mut input: I) -> ParseResult<I, A>
+where
+    I: Input,
+    P: Parser<I, T>,
+    F: FnMut(A, T) -> A,
+{
+    let mut acc = init;
+    loop {
+        match parser.parse(input.clone()) {
+            Ok((result, remaining)) => {
+                acc = f(acc, result);
+                input = remaining;
+            }
+            Err(_) => break,
+        }
+    }
+    Ok((acc, input))
+}
+
+/// Generic fold over one or more parser repetitions
+fn fold_many1<I, T, P, A, F>(parser: &P, init: A, mut f: F, input: I) -> ParseResult<I, A>
+where
+    I: Input,
+    P: Parser<I, T>,
+    F: FnMut(A, T) -> A,
+{
+    let (first, remaining) = parser.parse(input)?;
+    let acc = f(init, first);
+    fold_many0(parser, acc, f, remaining)
+}
+
 /// Many combinator - zero or more occurrences
 pub struct Many<P> {
     parser: P,
@@ -273,20 +333,16 @@ where
     P: Parser<I, T>,
     T: Clone,
 {
-    fn parse(&self, mut input: I) -> ParseResult<I, Vec<T>> {
-        let mut results = Vec::new();
-
-        loop {
-            match self.parser.parse(input.clone()) {
-                Ok((result, remaining)) => {
-                    results.push(result);
-                    input = remaining;
-                }
-                Err(_) => break,
-            }
-        }
-
-        Ok((results, input))
+    fn parse(&self, input: I) -> ParseResult<I, Vec<T>> {
+        fold_many0(
+            &self.parser,
+            Vec::new(),
+            |mut acc, item| {
+                acc.push(item);
+                acc
+            },
+            input,
+        )
     }
 }
 
@@ -302,20 +358,15 @@ where
     T: Clone,
 {
     fn parse(&self, input: I) -> ParseResult<I, Vec<T>> {
-        let (first, mut remaining) = self.parser.parse(input)?;
-        let mut results = vec![first];
-
-        loop {
-            match self.parser.parse(remaining.clone()) {
-                Ok((result, new_remaining)) => {
-                    results.push(result);
-                    remaining = new_remaining;
-                }
-                Err(_) => break,
-            }
-        }
-
-        Ok((results, remaining))
+        fold_many1(
+            &self.parser,
+            Vec::new(),
+            |mut acc, item| {
+                acc.push(item);
+                acc
+            },
+            input,
+        )
     }
 }
 
@@ -357,4 +408,90 @@ impl<I: Input, T> Parser<I, T> for Fail<I, T> {
     fn parse(&self, input: I) -> ParseResult<I, T> {
         Err(ParseError::message(self.message.clone(), input))
     }
+}
+
+/// FoldMany0 combinator - fold over zero or more occurrences
+pub struct FoldMany0<P, A, F, T> {
+    parser: P,
+    init: A,
+    f: F,
+    _phantom: PhantomData<T>,
+}
+
+impl<I, T, A, P, F> Parser<I, A> for FoldMany0<P, A, F, T>
+where
+    I: Input,
+    P: Parser<I, T>,
+    A: Clone,
+    F: FnMut(A, T) -> A + Clone,
+{
+    fn parse(&self, input: I) -> ParseResult<I, A> {
+        fold_many0(&self.parser, self.init.clone(), self.f.clone(), input)
+    }
+}
+
+/// FoldMany1 combinator - fold over one or more occurrences
+pub struct FoldMany1<P, A, F, T> {
+    parser: P,
+    init: A,
+    f: F,
+    _phantom: PhantomData<T>,
+}
+
+impl<I, T, A, P, F> Parser<I, A> for FoldMany1<P, A, F, T>
+where
+    I: Input,
+    P: Parser<I, T>,
+    A: Clone,
+    F: FnMut(A, T) -> A + Clone,
+{
+    fn parse(&self, input: I) -> ParseResult<I, A> {
+        fold_many1(&self.parser, self.init.clone(), self.f.clone(), input)
+    }
+}
+
+// Higher-order functional combinators
+
+/// Apply a binary function to two parser results
+pub fn map2<I, P1, P2, T1, T2, R, F>(p1: P1, p2: P2, f: F) -> impl Parser<I, R>
+where
+    I: Input,
+    P1: Parser<I, T1>,
+    P2: Parser<I, T2>,
+    F: Fn(T1, T2) -> R,
+{
+    p1.and(p2).map(move |(a, b)| f(a, b))
+}
+
+/// Apply a ternary function to three parser results
+pub fn map3<I, P1, P2, P3, T1, T2, T3, R, F>(p1: P1, p2: P2, p3: P3, f: F) -> impl Parser<I, R>
+where
+    I: Input,
+    P1: Parser<I, T1>,
+    P2: Parser<I, T2>,
+    P3: Parser<I, T3>,
+    F: Fn(T1, T2, T3) -> R,
+{
+    p1.and(p2).and(p3).map(move |((a, b), c)| f(a, b, c))
+}
+
+/// Parse two parsers and return their results as a tuple
+pub fn tuple2<I, P1, P2, T1, T2>(p1: P1, p2: P2) -> impl Parser<I, (T1, T2)>
+where
+    I: Input,
+    P1: Parser<I, T1>,
+    P2: Parser<I, T2>,
+{
+    p1.and(p2)
+}
+
+/// Parse three parsers and return their results as a tuple
+pub fn tuple3<I, P1, P2, P3, T1, T2, T3>(p1: P1, p2: P2, p3: P3) -> impl Parser<I, (T1, T2, T3)>
+where
+    I: Input,
+    P1: Parser<I, T1>,
+    P2: Parser<I, T2>,
+    P3: Parser<I, T3>,
+{
+    p1.and(p2).and(p3).map(|((a, b), c)| (a, b, c))
 }

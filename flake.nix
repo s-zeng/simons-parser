@@ -96,6 +96,7 @@
               rustc
               cargo
               cargo-watch
+              cargo-nextest
               rust-analyzer
             ];
           };

@@ -9,6 +9,9 @@ fmt:
 run *ARGS:
     cargo run {{ARGS}}
 
+test *ARGS:
+    cargo nextest run {{ARGS}}
+
 # Run 'cargo watch' to run the project (auto-recompiles)
 watch *ARGS:
     cargo watch -x "run -- {{ARGS}}"
